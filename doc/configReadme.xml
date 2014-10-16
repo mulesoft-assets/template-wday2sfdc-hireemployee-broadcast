@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<configuration>
+	<placeholders>
+		<placeholder id="template_name">Workday to Salesforce Employee Broadcast</placeholder>
+	</placeholders>
+	<sections>
+		<section id="use_case">
+			<![CDATA[
+I want to syncronize Employees between Workday and Salesfoce.
+]]>
+		</section>
+		<section id="considerations">
+			<![CDATA[
+To make this Anypoint Template run, there are certain preconditions that must be considered. All of them deal with the preparations in both source and destination systems, that must be made in order for all to run smoothly. **Failling to do so could lead to unexpected behavior of the template.**
+]]>
+		</section>
+		<section id="application_configuration">
+			<![CDATA[
++ poll.frequency `60000`
++ poll.startDelayMillis `1000`
++ watermark.defaultExpression `YESTERDAY`
+]]>
+		</section>
+		<section id="api_calls">
+			<![CDATA[
+Salesforce imposes limits on the number of API Calls that can be made. Therefore calculating this amount may be an important factor to consider.
+]]>
+		</section>
+	</sections>
+</configuration>

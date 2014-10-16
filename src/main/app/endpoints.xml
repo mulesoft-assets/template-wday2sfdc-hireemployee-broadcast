@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:wd-hr="http://www.mulesoft.org/schema/mule/wd-hr" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      version="EE-3.5.1"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
+http://www.mulesoft.org/schema/mule/wd-hr http://www.mulesoft.org/schema/mule/wd-hr/current/mule-wd-hr.xsd
+http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+
+	<!-- 	In this file you should declare all your inbound endpoints and from here controll the access to your application -->
+
+    <flow name="triggerHireEmployeeFlow" processingStrategy="synchronous" doc:name="triggerBroadcastFlow">
+ 		<poll doc:name="fireup hire employee synchronization">
+ 			<fixed-frequency-scheduler frequency="${poll.frequencyMillis}" startDelay="${poll.startDelayMillis}" />
+ 			<watermark variable="lastQueryDate" default-expression="${watermark.default.expression}" update-expression="#[ new java.util.Date() ]" />
+			<processor-chain doc:name="query Workers and set collection">
+				<logger message="Fetching Workday to hire employees... #[lastQueryDate]" level="INFO" doc:name="log 'Fetching workday hire employees...'"/>
+				<wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="get Workers from Workday Human Resource" workersRequest-ref="#[org.mule.kicks.HireEmployeeRequest.create(lastQueryDate, ${poll.frequencyMillis})]"></wd-hr:get-workers>
+                <data-mapper:transform config-ref="transform_Workday_workers_to_map_of_values" doc:name="transform Workday workers to map of values">
+			        <data-mapper:input-arguments>
+			            <data-mapper:input-argument key="LanguageLocaleKey">#['${user.languageLocaleKey}']</data-mapper:input-argument>
+			            <data-mapper:input-argument key="LocaleSidKey">#['${user.localeSidKey}']</data-mapper:input-argument>
+			            <data-mapper:input-argument key="ProfileId">#['${sfdc.user.profile.id}']</data-mapper:input-argument>
+			            <data-mapper:input-argument key="EmailEncodingKey">#['${user.emailEncodingKey}']</data-mapper:input-argument>
+			            <data-mapper:input-argument key="TimeZoneSidKey">#['${user.timeZoneSidKey}']</data-mapper:input-argument>
+			            <data-mapper:input-argument key="Alias">#[org.apache.commons.lang.RandomStringUtils.randomAlphabetic(8)]</data-mapper:input-argument>
+			            <data-mapper:input-argument key="Username">#[org.apache.commons.lang.RandomStringUtils.randomAlphabetic(8) + '@sf.com']</data-mapper:input-argument>
+			        </data-mapper:input-arguments>
+                </data-mapper:transform>
+			</processor-chain>
+		</poll>
+        <custom-filter doc:name="Custom component to filter duplicate workers" class="org.mule.kicks.WorkersDeduplicationFilter"/>
+        <flow-ref name="mainFlow" doc:description="mainFlow"  doc:name="mainFlow"/>
+    </flow>
+
+</mule>
