@@ -42,7 +42,7 @@ public class HireEmployeeQueryIT extends AbstractTemplateTestCase {
 
         // Set default water-mark expression to current time
         System.clearProperty("watermark.default.expression");
-        System.setProperty("watermark.default.expression", "#[groovy: new Date(System.currentTimeMillis() - 1000 * 60 * 60 * 24)]");
+        System.setProperty("watermark.default.expression", "#[groovy: new Date(System.currentTimeMillis() - 1000 * 60 * 60 * 168)]");
     }
 
     @Before
@@ -75,9 +75,6 @@ public class HireEmployeeQueryIT extends AbstractTemplateTestCase {
             List<WorkerType> workers = response.getResponseData().getWorker();
             assertFalse("The response data should not be empty", workers.isEmpty());
             log.info("workers.size() = " + workers.size());
-            for (WorkerType next : workers) {
-                log.info("getHireDate() = " + next.getWorkerData().getEmploymentData().getWorkerStatusData().getHireDate());
-            }
         }
     }
 

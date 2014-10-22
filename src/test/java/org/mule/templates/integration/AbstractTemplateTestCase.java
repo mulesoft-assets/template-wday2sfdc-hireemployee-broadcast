@@ -6,32 +6,34 @@
 
 package org.mule.templates.integration;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.util.Date;
-import java.util.Properties;
-
-import org.junit.Rule;
 import org.mule.api.config.MuleProperties;
 import org.mule.tck.junit4.FunctionalTestCase;
-import org.mule.tck.junit4.rule.DynamicPort;
+import org.mule.tck.probe.PollingProber;
+import org.mule.tck.probe.Prober;
+import org.mule.templates.utils.ListenerProbe;
+import org.mule.templates.utils.PipelineSynchronizeListener;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.Properties;
 
 /**
  * This is the base test class for Anypoint Templates integration tests.
  * 
- * @author damiansima
+ * @author aurel.medvegy
  */
 public class AbstractTemplateTestCase extends FunctionalTestCase {
 	private static final String MAPPINGS_FOLDER_PATH = "./mappings";
 	private static final String TEST_FLOWS_FOLDER_PATH = "./src/test/resources/flows/";
 	private static final String MULE_DEPLOY_PROPERTIES_PATH = "./src/main/app/mule-deploy.properties";
 
-	protected static final String TEMPLATE_NAME = "opportunity-aggregation";
+    protected final Prober pollProber = new PollingProber(60000, 8000l);
+    protected final PipelineSynchronizeListener pipelineListener = new PipelineSynchronizeListener(POLL_FLOW_NAME);
 
-	@Rule
-	public DynamicPort port = new DynamicPort("http.port");
+    protected static final String TEMPLATE_NAME = "hireworker-broadcast";
+    protected static final String POLL_FLOW_NAME = "triggerHireEmployeeFlow";
 
-	@Override
+    @Override
 	protected String getConfigResources() {
 		String resources = "";
 		try {
@@ -75,15 +77,7 @@ public class AbstractTemplateTestCase extends FunctionalTestCase {
 		return properties;
 	}
 
-	protected String buildUniqueName(String templateName, String name) {
-		String timeStamp = new Long(new Date().getTime()).toString();
-
-		StringBuilder builder = new StringBuilder();
-		builder.append(name);
-		builder.append(templateName);
-		builder.append(timeStamp);
-
-		return builder.toString();
-	}
-
+    protected void waitForPollToRun() {
+        pollProber.check(new ListenerProbe(pipelineListener));
+    }
 }
