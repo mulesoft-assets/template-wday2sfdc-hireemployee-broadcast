@@ -1,5 +1,5 @@
 
-# Anypoint Template: Workday to Salesforce Employee Broadcast
+# Anypoint Template: Workday to Salesforce Hire Worker Broadcast
 
 + [License Agreement](#licenseagreement)
 + [Use Case](#usecase)
@@ -31,6 +31,11 @@ I want to syncronize Employees between Workday and Salesfoce.
 # Considerations <a name="considerations"/>
 
 To make this Anypoint Template run, there are certain preconditions that must be considered. All of them deal with the preparations in both source and destination systems, that must be made in order for all to run smoothly. **Failling to do so could lead to unexpected behavior of the template.**
+
+1. **Users cannot be deleted in SalesForce:** For now, the only thing to do regarding users removal is disabling/deactivating them, but this won't make the username available for a new user.
+2. **Each user needs to be associated to a Profile:** SalesForce's profiles are what define the permissions the user will have for manipulating data and other users. Each SalesForce account has its own profiles. In this Anypoint Template you will find a processor labeled *setup Worker for upsert* where to set your Profile Ids from the source account. Note that for the integration test to run properly, you should change the constant *sfdc.profileId* in *mule.test.properties* to one that's valid in your source organization.
+3. **Working with sandboxes for the same account**: Although each sandbox should be a completely different environment, Usernames cannot be repeated in different sandboxes, i.e. if you have a user with username *bob.dylan* in *sandbox A*, you will not be able to create another user with username *bob.dylan* in *sandbox B*. If you are indeed working with Sandboxes for the same SalesForce account you will need to map the source username to a different one in the target sandbox, for this purpose, please refer to the processor labeled *setup Worker for upsert*.
+4. **Workday email uniqueness**: The email can be repeated for two or more accounts (or missing). Therefore Workday accounts with duplicate emails will be removed from processing in the Input stage.
 
 
 
@@ -67,7 +72,7 @@ There are no particular considerations for this Anypoint Template regarding Sieb
 There are no particular considerations for this Anypoint Template regarding Workday as data origin.
 
 # Run it! <a name="runit"/>
-Simple steps to get Workday to Salesforce Employee Broadcast running.
+Simple steps to get Workday to Salesforce Hire Worker Broadcast running.
 
 
 ## Running on premise <a name="runonopremise"/>
@@ -119,10 +124,38 @@ In order to use this Mule Anypoint Template you need to configure properties (Cr
 ### Application configuration
 + poll.frequency `60000`
 + poll.startDelayMillis `1000`
-+ watermark.defaultExpression `YESTERDAY`
++ watermark.default.expression `YESTERDAY`
+
+#### Workday Connector configuration
++ wday.user `admin@workday`
++ wday.password `secret`
++ wday.endpoint `https://impl-cc.workday.com/ccx/service/workday/Human_Resources/v21.1`
+
+#### Salesforce Connector
++ sfdc.username `user@company.com`
++ sfdc.password `secret`
++ sfdc.securityToken `1234fdkfdkso20kw2sd`
++ sfdc.url `https://login.salesforce.com/services/Soap/u/28.0`
+
++ sfdc.localeSidKey `en_US`
++ sfdc.languageLocaleKey `en_US`
++ sfdc.timeZoneSidKey `America/New_York`
++ sfdc.emailEncodingKey `ISO-8859-1`
+
++ sfdc.owner.id `10000000002D3JWAA0`
++ sfdc.user.profile.id `10000000002D4JWAA0`
++ sfdc.user.permission.id `10000000002D5JWAA0`
 
 # API Calls <a name="apicalls"/>
-Salesforce imposes limits on the number of API Calls that can be made. Therefore calculating this amount may be an important factor to consider.
+Salesforce imposes limits on the number of API Calls that can be made. Therefore calculating this amount may be an important factor to consider. The Anypoint Template calls to the API can be calculated using the formula:
+
+***1 + X + X / 200***
+
+Being ***X*** the number of Users to be synchronized on each run. 
+
+The division by ***200*** is because, by default, Users are gathered in groups of 200 for each Upsert API Call in the commit step. Also consider that this calls are executed repeatedly every polling cycle.	
+
+For instance if 10 records are fetched from origin instance, then 12 api calls will be made (1 + 10 + 1).
 
 
 # Customize It!<a name="customizeit"/>
@@ -145,12 +178,11 @@ In the visual editor they can be found on the *Global Element* tab.
 
 
 ## businessLogic.xml<a name="businesslogicxml"/>
-Functional aspect of the Anypoint Template is implemented on this XML, directed by a batch job that will be responsible for creations/updates. The several message processors constitute four high level actions that fully implement the logic of this Anypoint Template:
+Functional aspect of the Anypoint Template is implemented on this XML, directed by a batch job that will be responsible for creations/updates. The severeal message processors constitute four high level actions that fully implement the logic of this Anypoint Template:
 
-1. Job execution is invoked from triggerFlow (endpoints.xml) everytime there is a new query executed asking for created/updated Contacts.
-2. During the Process stage, each SFDC User will be filtered depending on, if it has an existing matching user in the SFDC Org B.
-3. The last step of the Process stage will group the users and create/update them in SFDC Org B.
-Finally during the On Complete stage the Anypoint Template will logoutput statistics data into the console.
+1. Job execution is invoked from triggerFlow (endpoints.xml) everytime there is a new query executed asking for created/updated Workers.
+2. During the Process stage, each Workers will be filtered depending on, if it has an existing matching User in the Salesforce.
+3. The last step of the Process stage will group the Users and create/update them in Salesforce. Finally during the On Complete stage the Anypoint Template will log output statistics data into the console.
 
 
 
