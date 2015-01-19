@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <configuration>
 	<placeholders>
-		<placeholder id="template_name">Workday to Salesforce Hire Worker Broadcast</placeholder>
+		<placeholder id="template_name">Workday to Salesforce Hire Employee Broadcast</placeholder>
 	</placeholders>
 	<sections>
 		<section id="use_case">
@@ -36,10 +36,10 @@ To make this Anypoint Template run, there are certain preconditions that must be
 + sfdc.securityToken `1234fdkfdkso20kw2sd`
 + sfdc.url `https://login.salesforce.com/services/Soap/u/28.0`
 
-+ sfdc.localeSidKey `en_US`
-+ sfdc.languageLocaleKey `en_US`
-+ sfdc.timeZoneSidKey `America/New_York`
-+ sfdc.emailEncodingKey `ISO-8859-1`
++ user.localeSidKey `en_US`
++ user.languageLocaleKey `en_US`
++ user.timeZoneSidKey `America/New_York`
++ user.emailEncodingKey `ISO-8859-1`
 
 + sfdc.owner.id `10000000002D3JWAA0`
 + sfdc.user.profile.id `10000000002D4JWAA0`

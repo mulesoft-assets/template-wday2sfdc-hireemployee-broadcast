@@ -24,8 +24,8 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
  			<watermark variable="lastQueryDate" default-expression="${watermark.default.expression}" update-expression="#[ new java.util.Date() ]" />
 			<processor-chain doc:name="query Workers and set collection">
 				<logger message="Fetching Workday to hire employees... #[lastQueryDate]" level="INFO" doc:name="log 'Fetching workday hire employees...'"/>
-				<wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="get Workers from Workday Human Resource" workersRequest-ref="#[org.mule.templates.HireEmployeeRequest.create(lastQueryDate, ${poll.frequencyMillis})]"></wd-hr:get-workers>
-                <data-mapper:transform config-ref="transform_Workday_workers_to_map_of_values" doc:name="transform Workday workers to map of values">
+				<wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="get hire employees from Workday Human Resource" workersRequest-ref="#[org.mule.templates.HireEmployeeRequest.create(lastQueryDate, ${poll.frequencyMillis})]"></wd-hr:get-workers>
+                <data-mapper:transform config-ref="transform_Workday_workers_to_map_of_values" doc:name="transform Workday employees to map of values">
 			        <data-mapper:input-arguments>
 			            <data-mapper:input-argument key="LanguageLocaleKey">#['${user.languageLocaleKey}']</data-mapper:input-argument>
 			            <data-mapper:input-argument key="LocaleSidKey">#['${user.localeSidKey}']</data-mapper:input-argument>
@@ -38,7 +38,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
                 </data-mapper:transform>
 			</processor-chain>
 		</poll>
-        <custom-filter doc:name="Custom component to filter duplicate workers" class="org.mule.templates.WorkersDeduplicationFilter"/>
+        <custom-filter doc:name="Custom component to filter duplicate employees" class="org.mule.templates.WorkersDeduplicationFilter"/>
         <flow-ref name="mainFlow" doc:description="mainFlow"  doc:name="mainFlow"/>
     </flow>
 

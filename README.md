@@ -1,5 +1,5 @@
 
-# Anypoint Template: Workday to Salesforce Hire Worker Broadcast
+# Anypoint Template: Workday to Salesforce Hire Employee Broadcast
 
 + [License Agreement](#licenseagreement)
 + [Use Case](#usecase)
@@ -73,7 +73,7 @@ There are no particular considerations for this Anypoint Template regarding Work
 
 
 # Run it! <a name="runit"/>
-Simple steps to get Workday to Salesforce Hire Worker Broadcast running.
+Simple steps to get Workday to Salesforce Hire Employee Broadcast running.
 
 
 ## Running on premise <a name="runonopremise"/>
@@ -138,10 +138,10 @@ In order to use this Mule Anypoint Template you need to configure properties (Cr
 + sfdc.securityToken `1234fdkfdkso20kw2sd`
 + sfdc.url `https://login.salesforce.com/services/Soap/u/28.0`
 
-+ sfdc.localeSidKey `en_US`
-+ sfdc.languageLocaleKey `en_US`
-+ sfdc.timeZoneSidKey `America/New_York`
-+ sfdc.emailEncodingKey `ISO-8859-1`
++ user.localeSidKey `en_US`
++ user.languageLocaleKey `en_US`
++ user.timeZoneSidKey `America/New_York`
++ user.emailEncodingKey `ISO-8859-1`
 
 + sfdc.owner.id `10000000002D3JWAA0`
 + sfdc.user.profile.id `10000000002D4JWAA0`
