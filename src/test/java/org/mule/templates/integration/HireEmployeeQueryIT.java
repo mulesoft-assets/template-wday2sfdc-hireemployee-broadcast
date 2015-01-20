@@ -27,7 +27,7 @@ import static org.junit.Assert.assertFalse;
 
 /**
  * The objective of this class is to validate the correct behavior of the flows
- * for this Anypoint Tempalte that make calls to external systems.
+ * for this Anypoint Template that make calls to external systems.
  */
 public class HireEmployeeQueryIT extends AbstractTemplateTestCase {
 

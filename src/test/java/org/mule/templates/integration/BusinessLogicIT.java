@@ -14,7 +14,7 @@ import org.mule.context.notification.NotificationException;
 
 /**
  * The objective of this class is to validate the correct behavior of the flows
- * for this Anypoint Tempalte that make calls to external systems.
+ * for this Anypoint Template that make calls to external systems.
  */
 public class BusinessLogicIT extends AbstractTemplateTestCase {
 

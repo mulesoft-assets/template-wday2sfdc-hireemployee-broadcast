@@ -26,7 +26,17 @@ Note that using this template is subject to the conditions of this [License Agre
 Please review the terms of the license before downloading and using this template. In short, you are allowed to use the template for free with Mule ESB Enterprise Edition, CloudHub, or as a trial in Anypoint Studio.
 
 # Use Case <a name="usecase"/>
-I want to syncronize Employees between Workday and Salesfoce.
+This Anypoint Template should serve as a foundation for setting an online sync of Employee Hires from Workday to Salesforce Users.
+
+Every time there is a new Employee Hire or a change in an already existing one, the integration will poll for them in the Workday source instance and it will be responsible for creating/updating the User in Salesforce with the specified PermissionSet.
+
+Requirements have been set not only to be used as examples, but also to establish a starting point to adapt your integration to your requirements.
+
+As implemented, this Anypoint Template leverages the [Batch Module](http://www.mulesoft.org/documentation/display/current/Batch+Processing). The batch job is divided in Input, Process and On Complete stages.
+
+The Template retrieves all Employee Hires that have changed since last poll, checks for duplicates and triggers the Batch process. During the Batch Process stage, in the first step the different Employees are matched by email with the existing Users in Salesforce. In the second step the users are upserted to Salesforce using a Batch Commit and updated with the specified PermissionSet.
+
+Finally during the On Complete stage the Anypoint Template will log output statistics data into the console.
 
 # Considerations <a name="considerations"/>
 
