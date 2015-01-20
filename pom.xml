@@ -11,7 +11,7 @@
 
 	<artifactId>template-wday2sfdc-hireemployee-broadcast</artifactId>
 	<packaging>mule</packaging>
-	<version>1.0.0</version>
+	<version>1.0.1-SNAPSHOT</version>
 	<name>template-wday2sfdc-hireemployee-broadcast Anypoint Template Project</name>
 
 	<properties>
@@ -84,6 +84,6 @@
 		<connection>scm:git:https://github.com/mulesoft/template-wday2sfdc-hireemployee-broadcast.git</connection>
 		<developerConnection>scm:git:https://github.com/mulesoft/template-wday2sfdc-hireemployee-broadcast.git</developerConnection>
 		<url>https://github.com/mulesoft/template-wday2sfdc-hireemployee-broadcast</url>
-	  <tag>v1.0.0</tag>
+	  <tag>HEAD</tag>
   </scm>
 </project>
