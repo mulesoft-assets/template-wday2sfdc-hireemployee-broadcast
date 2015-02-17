@@ -51,7 +51,6 @@ To make this Anypoint Template run, there are certain preconditions that must be
 + user.timeZoneSidKey `America/New_York`
 + user.emailEncodingKey `ISO-8859-1`
 
-+ sfdc.owner.id `10000000002D3JWAA0`
 + sfdc.user.profile.id `10000000002D4JWAA0`
 + sfdc.user.permission.id `10000000002D5JWAA0`
 ]]>

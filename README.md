@@ -153,7 +153,6 @@ In order to use this Mule Anypoint Template you need to configure properties (Cr
 + user.timeZoneSidKey `America/New_York`
 + user.emailEncodingKey `ISO-8859-1`
 
-+ sfdc.owner.id `10000000002D3JWAA0`
 + sfdc.user.profile.id `10000000002D4JWAA0`
 + sfdc.user.permission.id `10000000002D5JWAA0`
 
