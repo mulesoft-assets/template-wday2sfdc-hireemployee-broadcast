@@ -37,12 +37,11 @@
 	</build>
 
 	<dependencies>
-
 		<dependency>
-			<groupId>org.mule.modules</groupId>
-			<artifactId>mule-module-workday</artifactId>
-			<version>${wday.version}</version>
-		</dependency>
+        	    <groupId>org.mule.modules</groupId>
+            	<artifactId>mule-module-workday-humanresources</artifactId>
+            	<version>${wday.hr.version}</version>
+        </dependency>
 		<dependency>
 			<groupId>org.mule.modules</groupId>
 			<artifactId>mule-module-sfdc</artifactId>
