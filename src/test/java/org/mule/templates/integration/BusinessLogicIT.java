@@ -18,7 +18,7 @@ import org.mule.context.notification.NotificationException;
  */
 public class BusinessLogicIT extends AbstractTemplateTestCase {
 
-    private static final long TIMEOUT_MILLIS = 60000;
+    private static final long TIMEOUT_MILLIS = 180000;
     private static final long DELAY_MILLIS = 500;
     private BatchTestHelper helper;
 

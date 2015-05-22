@@ -6,17 +6,13 @@
 	<parent>
 		<groupId>org.mule.templates</groupId>
 		<artifactId>templates-tooling-parent-pom</artifactId>
-		<version>1.0.18</version>
+		<version>1.1.9</version>
 	</parent>
 
 	<artifactId>template-wday2sfdc-hireemployee-broadcast</artifactId>
 	<packaging>mule</packaging>
-	<version>1.0.2-SNAPSHOT</version>
+	<version>1.1.0-SNAPSHOT</version>
 	<name>template-wday2sfdc-hireemployee-broadcast Anypoint Template Project</name>
-
-	<properties>
-		<workday.version>4.0.1</workday.version>
-	</properties>
 
 	<build>
 		<plugins>
@@ -45,7 +41,7 @@
 		<dependency>
 			<groupId>org.mule.modules</groupId>
 			<artifactId>mule-module-workday</artifactId>
-			<version>${workday.version}</version>
+			<version>${wday.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mule.modules</groupId>
