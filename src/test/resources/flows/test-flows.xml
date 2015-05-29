@@ -27,6 +27,9 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
             <wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="Workday Human Resource" workersRequest-ref="#[org.mule.templates.HireEmployeeRequest.create(payload)]"/>
         </processor-chain>
     </sub-flow>
+    <sub-flow name="getSfdcUser">
+        <sfdc:query-single config-ref="Salesforce" query="dsql:SELECT Email, FirstName FROM User WHERE Email = '#[payload]'" doc:name="Salesforce"/>
+    </sub-flow>
     
     <sub-flow name="hireNewEmployee">
         <data-mapper:transform config-ref="pojo_to_hireemployeerequesttype" doc:name="Jobvite To HireEmployeeRequestType" />
