@@ -22,20 +22,24 @@ http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schem
 					doc:name="store result in record var 'userInSalesforce'">
 					<sfdc:query-single config-ref="Salesforce"
 						query="SELECT Id FROM User WHERE Email = '#[payload['Email']]'"
-						doc:name="query User in Salesforce" />
+						doc:name="Query User in Salesforce" />
 				</enricher>
+
 			</batch:step>
 			<batch:step name="foreachUserInWorkdayUpsertUserInSalesforce">
-				<expression-component doc:name="set ID for upsert"><![CDATA[if (recordVars['userInSalesforce'] instanceof NullPayload) {
+				<expression-component doc:name="Set ID for upsert"><![CDATA[if (recordVars['userInSalesforce'] instanceof NullPayload) {
 } else {
 	// Add target system ID as it is an update
     payload.put('Id', recordVars['userInSalesforce']['Id']);
 }
+payload.remove('LastModifiedDate');
 ]]></expression-component>
 				<batch:commit size="200" doc:name="Batch Commit">
-                    <sfdc:upsert config-ref="Salesforce" externalIdFieldName="Id" type="User" doc:name="upsert Users in Salesforce">
+
+                    <sfdc:upsert config-ref="Salesforce" externalIdFieldName="Id" type="User" doc:name="Upsert Users in Salesforce">
                         <sfdc:objects ref="#[payload]"/>
                     </sfdc:upsert>
+
                     <logger message="Users upsert result: #[payload]" level="INFO" doc:name="Logger 'users upsert result'"/>
                     <foreach doc:name="For each to check user's PerrmissionSet">
                         <expression-filter expression="#[payload.getId() != null]" doc:name="Filter 'skip if no user has been created/updated'"/>
@@ -46,36 +50,37 @@ http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schem
                         <choice doc:name="Choice">
                             <when expression="#[flowVars['userPermissionSet'] == null]">
                                 <processor-chain doc:name="Processor Chain">
-                                    <data-mapper:transform config-ref="Result_To_UserId" doc:name="transform input arguments to values to setup PermissionSet of the upserted user">
+                                    <data-mapper:transform config-ref="Result_To_UserId" doc:name="Transform input arguments to values to setup PermissionSet of the upserted user">
                                         <data-mapper:input-arguments>
                                             <data-mapper:input-argument key="AssigneeId">#[payload.getId()]</data-mapper:input-argument>
                                             <data-mapper:input-argument key="PermissionSetId">#['${sfdc.user.permission.id}']</data-mapper:input-argument>
                                         </data-mapper:input-arguments>
                                     </data-mapper:transform>
-                                    <sfdc:upsert config-ref="Salesforce" externalIdFieldName="Id" type="PermissionSetAssignment" doc:name="upsert User's Permission Set Assignment in Salesforce">
+                                    <sfdc:upsert config-ref="Salesforce" externalIdFieldName="Id" type="PermissionSetAssignment" doc:name="Upsert User's Permission Set Assignment in Salesforce">
                                         <sfdc:objects ref="#[payload]"/>
                                     </sfdc:upsert>
-                                    <logger message="Upsert result: #[payload]" level="INFO" doc:name="log Result"/>
+                                    <logger message="Upsert result: #[payload]" level="INFO" doc:name="Log Result"/>
                                 </processor-chain>
                             </when>
                             <otherwise>
                                 <logger level="INFO" doc:name="Nothing to set"/>
                             </otherwise>
                         </choice>
+
                     </foreach>
 				</batch:commit>
 			</batch:step>
 		</batch:process-records>
 		<batch:on-complete>
 			<json:object-to-json-transformer
-				doc:name="transform BatchJobInstance to JSON" />
-			<logger level="INFO" doc:name="log 'Migration process has finished'"
+				doc:name="Transform BatchJobInstance to JSON" />
+			<logger level="INFO" doc:name="Log 'Migration process has finished'"
 				message="Migration process has finished: #[payload]" />
 		</batch:on-complete>
 	</batch:job>
 
-    <flow name="mainFlow" doc:name="mainFlow">
-        <batch:execute name="syncUserBatch" doc:name="trigger syncUserBatch"/>
-        <exception-strategy ref="defaultChoiceExceptionStrategy" doc:name="catch Exception and call defaultExceptionStrategy"/>
+    <flow name="mainFlow" >
+        <batch:execute name="syncUserBatch" doc:name="Trigger syncUserBatch"/>
+        <exception-strategy ref="defaultChoiceExceptionStrategy" doc:name="Catch Exception and call defaultExceptionStrategy"/>
     </flow>
 </mule>

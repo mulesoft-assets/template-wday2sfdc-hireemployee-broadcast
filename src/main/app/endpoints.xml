@@ -8,18 +8,19 @@
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/wd-hr http://www.mulesoft.org/schema/mule/wd-hr/current/mule-wd-hr.xsd
-http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd">
+http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd
+http://www.mulesoft.org/schema/mule/wd-staffing http://www.mulesoft.org/schema/mule/wd-staffing/current/mule-wd-staffing.xsd">
 
-	<!-- 	In this file you should declare all your inbound endpoints in order to control the access to your application -->
+    <!-- 	In this file you should declare all your inbound endpoints in order to control the access to your application -->
 
-    <flow name="triggerHireEmployeeFlow" processingStrategy="synchronous" doc:name="triggerHireEmployeeFlow">
+    <flow name="triggerHireEmployeeFlow" processingStrategy="synchronous" >
  		<poll doc:name="fireup hire employee synchronization">
  			<fixed-frequency-scheduler frequency="${poll.frequencyMillis}" startDelay="${poll.startDelayMillis}" />
- 			<watermark variable="lastQueryDate" default-expression="${watermark.default.expression}" update-expression="#[ new java.util.Date() ]" />
+ 			<watermark variable="lastQueryDate" default-expression="${watermark.default.expression}" selector="FIRST" selector-expression="#[payload.LastModifiedDate]"/>
 			<processor-chain doc:name="query Workers and set collection">
-				<logger message="Fetching Workday to hire employees... #[lastQueryDate]" level="INFO" doc:name="log 'Fetching workday hire employees...'"/>
-				<wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="get hire employees from Workday Human Resource" workersRequest-ref="#[org.mule.templates.HireEmployeeRequest.create(lastQueryDate, ${poll.frequencyMillis})]"></wd-hr:get-workers>
-                <data-mapper:transform config-ref="transform_Workday_workers_to_map_of_values" doc:name="transform Workday employees to map of values">
+				<logger message="Fetching Workday to hire employees with watermark: #[new java.text.SimpleDateFormat(&quot;yyyy/dd/MM HH:mm:ss.SSS&quot;).format(lastQueryDate.getTime())]" level="INFO" doc:name="Log 'Fetching workday hire employees...'"/>
+				<wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="Get hire employees from Workday Human Resource" workersRequest-ref="#[org.mule.templates.HireEmployeeRequest.create(lastQueryDate)]"></wd-hr:get-workers>
+                <data-mapper:transform config-ref="transform_Workday_workers_to_map_of_values" doc:name="Transform Workday employees to map of values">
 			        <data-mapper:input-arguments>
 			            <data-mapper:input-argument key="LanguageLocaleKey">#['${user.languageLocaleKey}']</data-mapper:input-argument>
 			            <data-mapper:input-argument key="LocaleSidKey">#['${user.localeSidKey}']</data-mapper:input-argument>
@@ -28,12 +29,14 @@ http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schem
 			            <data-mapper:input-argument key="TimeZoneSidKey">#['${user.timeZoneSidKey}']</data-mapper:input-argument>
 			            <data-mapper:input-argument key="Alias">#[org.apache.commons.lang.RandomStringUtils.randomAlphabetic(8)]</data-mapper:input-argument>
 			            <data-mapper:input-argument key="Username">#[org.apache.commons.lang.RandomStringUtils.randomAlphabetic(8) + '@sf.com']</data-mapper:input-argument>
+                        <data-mapper:input-argument key="UpdatedThrough">#[payload.getRequestCriteria().getTransactionLogCriteriaData()[0].getTransactionDateRangeData().getUpdatedThrough()]</data-mapper:input-argument>
 			        </data-mapper:input-arguments>
                 </data-mapper:transform>
 			</processor-chain>
-		</poll>
-        <custom-filter doc:name="Custom component to filter duplicate employees" class="org.mule.templates.WorkersDeduplicationFilter"/>
-        <flow-ref name="mainFlow" doc:description="mainFlow"  doc:name="mainFlow"/>
-    </flow>
+		</poll>		
+        <expression-filter expression="#[payload.size() &gt; 0]" doc:name="Filter empty result set"/>
+
+        <flow-ref name="mainFlow" doc:description="mainFlow"  doc:name="Call mainFlow"/>
+    </flow>   
 
 </mule>

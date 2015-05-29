@@ -21,7 +21,8 @@ import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.InitialisationException;
 import org.mule.processor.chain.InterceptingChainLifecycleWrapper;
 
-import java.util.Date;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import static org.junit.Assert.assertFalse;
@@ -43,7 +44,7 @@ public class HireEmployeeQueryIT extends AbstractTemplateTestCase {
 
         // Set default water-mark expression to current time
         System.clearProperty("watermark.default.expression");
-        System.setProperty("watermark.default.expression", "#[groovy: new Date(System.currentTimeMillis() - 1000 * 60 * 60 * 168)]");
+        System.setProperty("watermark.default.expression", "#[groovy: new GregorianCalendar(2015, Calendar.MAY, 22, 13, 00, 00)]");
     }
 
     @Before
@@ -69,7 +70,8 @@ public class HireEmployeeQueryIT extends AbstractTemplateTestCase {
     @Test
     public void testMainFlow() throws Exception {
 
-        Date date = new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 168));
+    	GregorianCalendar date = new GregorianCalendar();
+    	date.add(Calendar.SECOND, -(60 * 60 * 168));
         GetWorkersResponseType response = (GetWorkersResponseType) queryWorkdayEmployee(queryEmployeeFromWorkdayFlow, date);
 
         if (response.getResponseData() != null) {
@@ -79,7 +81,7 @@ public class HireEmployeeQueryIT extends AbstractTemplateTestCase {
         }
     }
 
-    private Object queryWorkdayEmployee(InterceptingChainLifecycleWrapper flow, Date date)
+    private Object queryWorkdayEmployee(InterceptingChainLifecycleWrapper flow, GregorianCalendar date)
             throws MuleException, Exception {
 
         MuleMessage message = flow.process(getTestEvent(date, MessageExchangePattern.REQUEST_RESPONSE)).getMessage();

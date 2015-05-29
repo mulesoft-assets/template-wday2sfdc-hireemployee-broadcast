@@ -14,7 +14,7 @@ Requirements have been set not only to be used as examples, but also to establis
 
 As implemented, this Anypoint Template leverages the [Batch Module](http://www.mulesoft.org/documentation/display/current/Batch+Processing). The batch job is divided in Input, Process and On Complete stages.
 
-The Template retrieves all Employee Hires that have changed since last poll, checks for duplicates and triggers the Batch process. During the Batch Process stage, in the first step the different Employees are matched by email with the existing Users in Salesforce. In the second step the users are upserted to Salesforce using a Batch Commit and updated with the specified PermissionSet.
+The Template retrieves all Employee Hires that have changed since last poll and if there are any, triggers the Batch process. During the Batch Process stage, in the first step the Employees are matched by email with the existing Users in Salesforce. In the second step the users are upserted to Salesforce using a Batch Commit and updated with the specified PermissionSet.
 
 Finally during the On Complete stage the Anypoint Template will log output statistics data into the console.
 ]]>
@@ -74,7 +74,7 @@ Functional aspect of the Anypoint Template is implemented on this XML, directed 
 
 1. Job execution is invoked from triggerFlow (endpoints.xml) everytime there is a new query executed asking for created/updated Workers.
 2. During the Process stage, each Workers will be filtered depending on, if it has an existing matching User in the Salesforce.
-3. The last step of the Process stage will group the Users and create/update them in Salesforce. Finally during the On Complete stage the Anypoint Template will log output statistics data into the console.
+3. The last step of the Process stage will group the Users and create/update them in Salesforce and upsert PermissionSet if it is not exist. Finally during the On Complete stage the Anypoint Template will log output statistics data into the console.
 ]]>
 		</section>
 	</sections>

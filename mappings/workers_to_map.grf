@@ -6848,6 +6848,7 @@
 <Field __sourcePath="{}/user-map/TimeZoneSidKey" containerType="SINGLE" label="TimeZoneSidKey" name="TimeZoneSidKey" type="string"/>
 <Field __sourcePath="{}/user-map/Alias" containerType="SINGLE" label="Alias" name="Alias" type="string"/>
 <Field __sourcePath="{}/user-map/CommunityNickname" containerType="SINGLE" label="CommunityNickname" name="CommunityNickname" type="string"/>
+<Field __dmType="Calendar" __sourcePath="{}/user-map/LastModifiedDate" containerType="SINGLE" label="LastModifiedDate" name="LastModifiedDate" type="string"/>
 </Record>
 </Metadata>
 <Metadata __index="1520" __referenceCounter="0" __sourcePath="{}/object/responseData/worker/workerData/personalData/identificationData/visaID" _dataStructure="SINGLE_DIMENSIONAL_COLLECTION" _id="__id" _metadataParentId="5b093719-c3c6-4e3d-a24d-c7cdeb5d3542" _parent_id="__parent_id" _type="Input" id="f939af7a-3840-4f75-a292-4313a3387bb4">
@@ -7297,6 +7298,7 @@
 <Entry dictval.__javaType="java.lang.String" id="DictionaryEntry6" input="true" name="TimeZoneSidKey" output="false" type="string"/>
 <Entry dictval.__javaType="java.lang.String" id="DictionaryEntry7" input="true" name="Alias" output="false" type="string"/>
 <Entry dictval.__javaType="java.lang.String" id="DictionaryEntry8" input="true" name="Username" output="false" type="string"/>
+<Entry dictval.__javaType="javax.xml.datatype.XMLGregorianCalendar" id="DictionaryEntry9" input="true" name="UpdatedThrough" output="false" type="object"/>
 </Dictionary>
 </Global>
 <Phase number="0">
@@ -11286,7 +11288,7 @@ output.CommunityNickname = input.Email;
 output.Alias = inputArguments.Alias;
 output.Username = inputArguments.Username;
 output.Email = input.Email;
-]]></attr>
+output.LastModifiedDate = inputArguments.UpdatedThrough;]]></attr>
 </Node>
 <Node cacheInMemory="true" enabled="enabled" fileURL="dict:outputPayload" guiName="Map&lt;k,v&gt; WRITER" guiX="900" guiY="20" id="MAP_WRITER0" type="MAP_WRITER">
 <attr name="mapping"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
@@ -11303,6 +11305,7 @@ output.Email = input.Email;
     <TimeZoneSidKey>$0.TimeZoneSidKey</TimeZoneSidKey>
     <Alias>$0.Alias</Alias>
     <CommunityNickname>$0.CommunityNickname</CommunityNickname>
+    <LastModifiedDate clover:dataType="java.util.Calendar">$0.LastModifiedDate</LastModifiedDate>
   </item>
 </clover:collection>]]></attr>
 <attr name="_data_format"><![CDATA[MAP]]></attr>

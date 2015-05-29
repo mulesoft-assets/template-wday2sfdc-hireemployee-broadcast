@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper"
+<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" 
+	  xmlns:wd-staffing="http://www.mulesoft.org/schema/mule/wd-staffing"
+	  xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper"
 	  xmlns:wd-hr="http://www.mulesoft.org/schema/mule/wd-hr" 
 	  xmlns="http://www.mulesoft.org/schema/mule/core" 
 	  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
@@ -8,11 +10,36 @@
 	  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/wd-hr http://www.mulesoft.org/schema/mule/wd-hr/current/mule-wd-hr.xsd
-http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd">
+http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd
+http://www.mulesoft.org/schema/mule/wd-staffing http://www.mulesoft.org/schema/mule/wd-staffing/current/mule-wd-staffing.xsd
+http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
 
-    <sub-flow name="queryWorkdayEmployeeFlow" doc:name="queryWorkdayEmployeeFlow">
+	<wd-staffing:config name="Workday_Staffing" staffingUser="${wday.user}" staffingPassword="${wday.password}" staffingEndpoint="${wday.endpoint}" doc:name="Workday Staffing">
+        <wd-staffing:connection-pooling-profile initialisationPolicy="INITIALISE_ONE" exhaustedAction="WHEN_EXHAUSTED_GROW"/>
+    </wd-staffing:config>
+    
+    <data-mapper:config name="pojo_to_hireemployeerequesttype" transformationGraphPath="pojo_to_hireemployeerequesttype.grf" doc:name="DataMapper"/>
+    <data-mapper:config name="EmployeeType_To_TerminateEmployeeRequestType" transformationGraphPath="employeetype_to_terminateemployeerequesttype.grf" doc:name="DataMapper"/>
+    
+    <sub-flow name="queryWorkdayEmployeeFlow" >
         <processor-chain doc:name="Processor Chain">
-            <wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="Workday Human Resource" workersRequest-ref="#[org.mule.templates.HireEmployeeRequest.create(payload, ${poll.frequencyMillis})]"/>
+            <wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="Workday Human Resource" workersRequest-ref="#[org.mule.templates.HireEmployeeRequest.create(payload)]"/>
         </processor-chain>
+    </sub-flow>
+    
+    <sub-flow name="hireNewEmployee">
+        <data-mapper:transform config-ref="pojo_to_hireemployeerequesttype" doc:name="Jobvite To HireEmployeeRequestType" />
+        <wd-staffing:hire-employee config-ref="Workday_Staffing" doc:name="Workday Staffing"/>
+    </sub-flow>
+
+    
+    <sub-flow name="getWorkdaytoTerminateFlow" >
+        <wd-hr:get-employee config-ref="WorkdayHumanResource" doc:name="Workday Human Resource"/>
+        <data-mapper:transform doc:name="EmployeeType To TerminateEmployeeRequestType" config-ref="EmployeeType_To_TerminateEmployeeRequestType"/>
+	</sub-flow>
+    
+    <sub-flow name="terminateWorkdayEmployee" >
+    	<wd-staffing:terminate-employee config-ref="Workday_Staffing" doc:name="Workday Staffing" />
     </sub-flow>
 </mule>
