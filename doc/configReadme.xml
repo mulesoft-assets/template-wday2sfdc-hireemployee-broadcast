@@ -31,9 +31,9 @@ To make this Anypoint Template run, there are certain preconditions that must be
 		</section>
 		<section id="application_configuration">
 			<![CDATA[
-+ poll.frequency `60000`
++ poll.frequencyMillis `60000`
 + poll.startDelayMillis `1000`
-+ watermark.default.expression `YESTERDAY`
++ watermark.default.expression `#[groovy: new GregorianCalendar(2015, Calendar.MAY, 22, 13, 00, 00)]`
 
 #### Workday Connector configuration
 + wday.user `admin@workday`
