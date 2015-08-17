@@ -1,30 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" 
-	  xmlns:wd-staffing="http://www.mulesoft.org/schema/mule/wd-staffing"
-	  xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper"
-	  xmlns:wd-hr="http://www.mulesoft.org/schema/mule/wd-hr" 
-	  xmlns="http://www.mulesoft.org/schema/mule/core" 
-	  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	  version="EE-3.6.2"
-	  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc"
+	xmlns:wd-staffing="http://www.mulesoft.org/schema/mule/wd-staffing"
+	xmlns:wd-hr="http://www.mulesoft.org/schema/mule/wd-hr" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" version="EE-3.7.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/wd-hr http://www.mulesoft.org/schema/mule/wd-hr/current/mule-wd-hr.xsd
-http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd
 http://www.mulesoft.org/schema/mule/wd-staffing http://www.mulesoft.org/schema/mule/wd-staffing/current/mule-wd-staffing.xsd
 http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
-http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
 
 	<wd-staffing:config name="Workday_Staffing" staffingUser="${wday.user}" staffingPassword="${wday.password}" staffingEndpoint="${wday.endpoint}" doc:name="Workday Staffing">
         <wd-staffing:connection-pooling-profile initialisationPolicy="INITIALISE_ONE" exhaustedAction="WHEN_EXHAUSTED_GROW"/>
     </wd-staffing:config>
     
-    <data-mapper:config name="pojo_to_hireemployeerequesttype" transformationGraphPath="pojo_to_hireemployeerequesttype.grf" doc:name="DataMapper"/>
-    <data-mapper:config name="EmployeeType_To_TerminateEmployeeRequestType" transformationGraphPath="employeetype_to_terminateemployeerequesttype.grf" doc:name="DataMapper"/>
-    
     <sub-flow name="queryWorkdayEmployeeFlow" >
         <processor-chain doc:name="Processor Chain">
-            <wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="Workday Human Resource" workersRequest-ref="#[org.mule.templates.HireEmployeeRequest.create(payload)]"/>
+            <dw:transform-message doc:name="Create GetWorkersRequestType">
+                <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	requestCriteria: {		
+		excludeInactiveWorkers: true,
+		
+		transactionLogCriteriaData: [{
+			
+			transactionDateRangeData: {
+				updatedFrom: payload,
+				updatedThrough: now as :datetime				
+			} ,
+			transactionTypeReferences: {
+				transactionTypeReference: [{
+					ID: [{
+						type: "Business_Process_Type",
+						value: "Hire Employee"
+					}  ]
+				} ]
+			} 
+		} ]
+	} ,
+	
+	responseGroup: {		
+		includePersonalInformation: true,		
+		includeRoles: true,		
+		includeOrganizations: true,
+		includeEmploymentInformation: true,
+		includeReference: true
+	} 
+} as :object {
+	class : "com.workday.hr.GetWorkersRequestType"
+}]]></dw:set-payload>
+            </dw:transform-message>
+            <wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="Workday Human Resource" />
         </processor-chain>
     </sub-flow>
     <sub-flow name="getSfdcUser">
@@ -32,14 +63,258 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
     </sub-flow>
     
     <sub-flow name="hireNewEmployee">
-        <data-mapper:transform config-ref="pojo_to_hireemployeerequesttype" doc:name="Jobvite To HireEmployeeRequestType" />
+        <dw:transform-message doc:name="Employee To HireEmployeeRequestType">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+%type employee = :object { class: "org.mule.templates.utils.Employee"}
+---
+{
+	businessProcessParameters: {
+		autoComplete: true
+	},
+	hireEmployeeData: {
+		applicantData: {
+			personalData: {
+				contactData: {
+					addressData: [{
+						countryReference: {
+							ID: [{
+								type: "ISO_3166-1_Alpha-3_Code",
+								value: payload.country
+							}]
+							
+						},
+						countryRegionReference: {
+							ID: [{
+								type: "Country_Region_ID",
+								value: payload.state
+							}]
+						},
+						addressLineData: [{
+							type: "ADDRESS_LINE_1",
+							value: payload.addr1
+						}],
+						effectiveDate: payload.hireDate,
+						postalCode: payload.zip,
+						municipality: payload.city,
+						usageData: [{
+							typeData: [{
+								primary: true,
+								typeReference: {
+									ID: [{
+										type: "Communication_Usage_Type_ID",
+										value: "HOME"
+									}]
+								}
+							}],
+							public: false
+						}]
+					}],
+					emailAddressData: [{
+						emailAddress: payload.email,
+						usageData: [{
+							typeData: [{
+								primary: true,
+								typeReference: {
+									ID: [{
+										type: "Communication_Usage_Type_ID",
+										value: "HOME"
+									}]
+								}
+							}],
+							public: true
+						}]
+					}],
+					phoneData: [{
+						phoneNumber: payload.phone,
+						internationalPhoneCode: "1",
+						phoneDeviceTypeReference: {
+							ID: [{
+								type: "Phone_Device_Type_ID",
+								value: "1063.5"
+							}]
+						},
+						usageData: [{
+							typeData: [{
+								typeReference: {
+									ID: [{
+										type: "Communication_Usage_Type_ID",
+										value: "HOME"
+									}]
+								},
+								primary: true
+							}],
+							public: true
+						}]					
+					}]
+				},
+				nameData: {
+					legalNameData: {
+						nameDetailData: {
+							firstName: payload.givenName,
+							lastName: payload.familyName,
+							countryReference: {
+								ID: [{
+									type: "ISO_3166-1_Alpha-3_Code",
+									value: payload.country
+								}]
+							}
+						}
+						
+					}
+					
+				}
+				
+			},
+			externalIntegrationIDData: {
+				ID: [{
+					systemID: "Salesforce - Chatter",
+					value: payload.id
+				}]
+				
+			}
+			
+		},
+		hireDate: payload.hireDate,
+		proposeCompensationForHireSubProcess: {
+			proposeCompensationForHireData: {
+				compensationGuidelinesData: {
+					compensationGradeReference: {
+						ID: [{
+							type: "Compensation_Grade_ID",
+							value: "Non_Management"
+						}]
+					},
+					compensationPackageReference: {
+						ID: [{
+							type: "Compensation_Package_ID",
+							value:"Non_Management_Compensation_Package"
+						}]
+					}
+				},
+				payPlanData: {
+					replace: false,
+					payPlanSubData: [{
+						currencyReference: {
+							ID: [{
+								type: "Currency_ID",
+								value: payload.basePayCurrency
+							}]
+						},
+						frequencyReference: {
+							ID: [{
+								type: "Frequency_ID",
+								value: payload.basePayFreq
+							}]
+						},
+						payPlanReference: {
+							ID: [{
+								type: "Compensation_Plan_ID",
+								value: "SALARY_Hourly_Plan"
+							}]
+						},
+						amount: payload.basePay
+					}]
+				},
+				primaryCompensationBasis: payload.basePay
+			}
+		},
+		hireEmployeeEventData: {
+			employeeTypeReference: {
+				ID: [{
+					type: "Employee_Type_ID",
+					value: payload.eeType
+				}]
+			},
+			employeeExternalIDData: {
+				externalID: [{
+					externalID: payload.id,
+					systemID:"Salesforce - Chatter"
+				}]
+			},
+			hireReasonReference: {
+				ID: [{
+					type: "General_Event_Subcategory_ID",
+					value: "Hire_Employee_New_Hire_Fill_Vacancy"
+				}]
+			},
+			positionDetails: {
+				jobProfileReference: {
+					ID: [{
+						type: "Job_Profile_ID",
+						value: payload.jobProfile
+					}]
+				},
+				locationReference: {
+					ID: [{
+						type: "Location_ID",
+						value: payload.location
+					}]
+				},
+				businessTitle: payload.title,
+				positionTitle: payload.title,
+				defaultHours: 40,
+				scheduledHours: 40,
+				payRateTypeReference: {
+					ID: [{
+						type: "Pay_Rate_Type_ID",
+						value: payload.payRateType
+					}]
+				},
+				positionTimeTypeReference: {
+					ID: [{
+						type: "Position_Time_Type_ID",
+						value: payload.timeType
+					}]					
+				}
+			},
+			firstDayOfWork: payload.startDate
+		},
+		organizationReference: {
+			ID: [{
+				type: "Organization_Reference_ID",
+				value: "50006855"
+			}]
+		}
+		
+	},
+	version: "v23.1"
+	
+} as :object {
+	class: "com.workday.staffing.HireEmployeeRequestType"
+}]]></dw:set-payload>
+        </dw:transform-message>
+
         <wd-staffing:hire-employee config-ref="Workday_Staffing" doc:name="Workday Staffing"/>
     </sub-flow>
 
     
     <sub-flow name="getWorkdaytoTerminateFlow" >
         <wd-hr:get-employee config-ref="WorkdayHumanResource" doc:name="Workday Human Resource"/>
-        <data-mapper:transform doc:name="EmployeeType To TerminateEmployeeRequestType" config-ref="EmployeeType_To_TerminateEmployeeRequestType"/>
+
+        <dw:transform-message doc:name="EmployeeType To TerminateEmployeeRequestType">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	terminateEmployeeData: {
+		employeeReference: {
+			descriptor: payload.employeeReference.integrationIDReference.descriptor,
+			ID: [{
+				type: "Employee_ID",
+				value: payload.employeeData[0].employeeID
+			}]
+		}
+		
+	},
+	
+	version: payload.version
+	
+} as :object {
+	class: "com.workday.staffing.TerminateEmployeeRequestType"
+}]]></dw:set-payload>
+        </dw:transform-message>
+
 	</sub-flow>
     
     <sub-flow name="terminateWorkdayEmployee" >

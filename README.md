@@ -144,13 +144,13 @@ In order to use this Mule Anypoint Template you need to configure properties (Cr
 #### Workday Connector configuration
 + wday.user `admin@workday`
 + wday.password `secret`
-+ wday.endpoint `https://impl-cc.workday.com/ccx/service/workday/Human_Resources/v21.1`
++ wday.endpoint `https://impl-cc.workday.com/ccx/service/workday/Human_Resources/v23.1`
 
 #### Salesforce Connector
 + sfdc.username `user@company.com`
 + sfdc.password `secret`
 + sfdc.securityToken `1234fdkfdkso20kw2sd`
-+ sfdc.url `https://login.salesforce.com/services/Soap/u/28.0`
++ sfdc.url `https://login.salesforce.com/services/Soap/u/32.0`
 
 + user.localeSidKey `en_US`
 + user.languageLocaleKey `en_US`

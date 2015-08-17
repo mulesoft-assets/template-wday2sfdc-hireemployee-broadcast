@@ -1,39 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" 
-	  xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
-	  xmlns:json="http://www.mulesoft.org/schema/mule/json"
-	  xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc"
-      xmlns="http://www.mulesoft.org/schema/mule/core"
-      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-      version="EE-3.6.2"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	version="EE-3.7.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
-http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd">
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     
 	<batch:job name="syncUserBatch">
 		<batch:threading-profile poolExhaustedAction="WAIT" />
 		<batch:process-records>
+
 			<batch:step name="foreachUserInWorkdayGetUserInSalesforce">
-				<enricher source="#[payload]" target="#[recordVars['userInSalesforce']]"
+				<enricher source="#[payload == null ? null : payload.Id]" target="#[payload.Id]"
 					doc:name="store result in record var 'userInSalesforce'">
 					<sfdc:query-single config-ref="Salesforce"
 						query="SELECT Id FROM User WHERE Email = '#[payload['Email']]'"
 						doc:name="Query User in Salesforce" />
 				</enricher>
 
+
 			</batch:step>
 			<batch:step name="foreachUserInWorkdayUpsertUserInSalesforce">
-				<expression-component doc:name="Set ID for upsert"><![CDATA[if (recordVars['userInSalesforce'] instanceof NullPayload) {
-} else {
-	// Add target system ID as it is an update
-    payload.put('Id', recordVars['userInSalesforce']['Id']);
-}
-payload.remove('LastModifiedDate');
-]]></expression-component>
+
 				<batch:commit size="200" doc:name="Batch Commit">
 
                     <sfdc:upsert config-ref="Salesforce" externalIdFieldName="Id" type="User" doc:name="Upsert Users in Salesforce">
@@ -42,28 +36,32 @@ payload.remove('LastModifiedDate');
 
                     <logger message="Users upsert result: #[payload]" level="INFO" doc:name="Logger 'users upsert result'"/>
                     <foreach doc:name="For each to check user's PerrmissionSet">
-                        <expression-filter expression="#[payload.getId() != null]" doc:name="Filter 'skip if no user has been created/updated'"/>
+                        <expression-filter expression="#[payload.id != null]" doc:name="Filter 'skip if no user has been created/updated'"/>
 						<enricher source="#[payload]" target="#[flowVars['userPermissionSet']]"
 							doc:name="store result in record var 'userPermissionSet'" >
-	                        <sfdc:query-single config-ref="Salesforce" doc:name="Query if exist PermissionSet for user" query="Select Id, p.PermissionSet.ProfileId, p.PermissionSetId, p.Assignee.Email, p.Assignee.Id From PermissionSetAssignment p where AssigneeId = '#[payload.getId()]' and PermissionSetId = '${sfdc.user.permission.id}'"/>
+	                        <sfdc:query-single config-ref="Salesforce" doc:name="Query if exist PermissionSet for user" query="Select Id, p.PermissionSet.ProfileId, p.PermissionSetId, p.Assignee.Email, p.Assignee.Id From PermissionSetAssignment p where AssigneeId = '#[payload.id]' and PermissionSetId = '${sfdc.user.permission.id}'"/>
 						</enricher>
                         <choice doc:name="Choice">
                             <when expression="#[flowVars['userPermissionSet'] == null]">
                                 <processor-chain doc:name="Processor Chain">
-                                    <data-mapper:transform config-ref="Result_To_UserId" doc:name="Transform input arguments to values to setup PermissionSet of the upserted user">
-                                        <data-mapper:input-arguments>
-                                            <data-mapper:input-argument key="AssigneeId">#[payload.getId()]</data-mapper:input-argument>
-                                            <data-mapper:input-argument key="PermissionSetId">#['${sfdc.user.permission.id}']</data-mapper:input-argument>
-                                        </data-mapper:input-arguments>
-                                    </data-mapper:transform>
-                                    <sfdc:upsert config-ref="Salesforce" externalIdFieldName="Id" type="PermissionSetAssignment" doc:name="Upsert User's Permission Set Assignment in Salesforce">
+                                    <dw:transform-message doc:name="Transform input arguments to values to setup PermissionSet of the upserted user">
+                                        <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+[{
+	PermissionSetId: p('sfdc.user.permission.id'),
+	AssigneeId: payload.id
+}]]]></dw:set-payload>
+                                    </dw:transform-message>
+
+                                    <sfdc:upsert config-ref="Salesforce" externalIdFieldName="id" type="PermissionSetAssignment" doc:name="Upsert User's Permission Set Assignment in Salesforce">
                                         <sfdc:objects ref="#[payload]"/>
                                     </sfdc:upsert>
                                     <logger message="Upsert result: #[payload]" level="INFO" doc:name="Log Result"/>
                                 </processor-chain>
                             </when>
                             <otherwise>
-                                <logger level="INFO" doc:name="Nothing to set"/>
+                                <logger level="INFO" doc:name="Nothing to set" message="Nothing to set"/>
                             </otherwise>
                         </choice>
 
@@ -80,7 +78,10 @@ payload.remove('LastModifiedDate');
 	</batch:job>
 
     <flow name="mainFlow" >
+
+
         <batch:execute name="syncUserBatch" doc:name="Trigger syncUserBatch"/>
         <exception-strategy ref="defaultChoiceExceptionStrategy" doc:name="Catch Exception and call defaultExceptionStrategy"/>
     </flow>
+
 </mule>

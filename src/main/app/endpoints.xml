@@ -1,39 +1,88 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" 
-	  xmlns:wd-hr="http://www.mulesoft.org/schema/mule/wd-hr"
-      xmlns="http://www.mulesoft.org/schema/mule/core"
-      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-      version="EE-3.6.2"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:wd-hr="http://www.mulesoft.org/schema/mule/wd-hr"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	version="EE-3.7.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/wd-hr http://www.mulesoft.org/schema/mule/wd-hr/current/mule-wd-hr.xsd
-http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd
-http://www.mulesoft.org/schema/mule/wd-staffing http://www.mulesoft.org/schema/mule/wd-staffing/current/mule-wd-staffing.xsd">
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
 
     <!-- 	In this file you should declare all your inbound endpoints in order to control the access to your application -->
 
     <flow name="triggerHireEmployeeFlow" processingStrategy="synchronous" >
  		<poll doc:name="fireup hire employee synchronization">
  			<fixed-frequency-scheduler frequency="${poll.frequencyMillis}" startDelay="${poll.startDelayMillis}" />
- 			<watermark variable="lastQueryDate" default-expression="${watermark.default.expression}" selector="FIRST" selector-expression="#[payload.LastModifiedDate]"/>
+ 			<watermark variable="lastQueryDate" default-expression="${watermark.default.expression}"  selector-expression="#[payload.LastModifiedDate]" update-expression="#[flowVars.updatedThrough]"/>
 			<processor-chain doc:name="query Workers and set collection">
-				<logger message="Fetching Workday to hire employees with watermark: #[new java.text.SimpleDateFormat(&quot;yyyy/dd/MM HH:mm:ss.SSS&quot;).format(lastQueryDate.getTime())]" level="INFO" doc:name="Log 'Fetching workday hire employees...'"/>
-				<wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="Get hire employees from Workday Human Resource" workersRequest-ref="#[org.mule.templates.HireEmployeeRequest.create(lastQueryDate)]"></wd-hr:get-workers>
-                <data-mapper:transform config-ref="transform_Workday_workers_to_map_of_values" doc:name="Transform Workday employees to map of values">
-			        <data-mapper:input-arguments>
-			            <data-mapper:input-argument key="LanguageLocaleKey">#['${user.languageLocaleKey}']</data-mapper:input-argument>
-			            <data-mapper:input-argument key="LocaleSidKey">#['${user.localeSidKey}']</data-mapper:input-argument>
-			            <data-mapper:input-argument key="ProfileId">#['${sfdc.user.profile.id}']</data-mapper:input-argument>
-			            <data-mapper:input-argument key="EmailEncodingKey">#['${user.emailEncodingKey}']</data-mapper:input-argument>
-			            <data-mapper:input-argument key="TimeZoneSidKey">#['${user.timeZoneSidKey}']</data-mapper:input-argument>
-			            <data-mapper:input-argument key="Alias">#[org.apache.commons.lang.RandomStringUtils.randomAlphabetic(8)]</data-mapper:input-argument>
-			            <data-mapper:input-argument key="Username">#[org.apache.commons.lang.RandomStringUtils.randomAlphabetic(8) + '@sf.com']</data-mapper:input-argument>
-                        <data-mapper:input-argument key="UpdatedThrough">#[payload.getRequestCriteria().getTransactionLogCriteriaData()[0].getTransactionDateRangeData().getUpdatedThrough()]</data-mapper:input-argument>
-			        </data-mapper:input-arguments>
-                </data-mapper:transform>
+				<logger message="Fetching Workday to hire employees with watermark:  ${watermark.default.expression}" level="INFO" doc:name="Log 'Fetching workday hire employees...'"/>
+                <dw:transform-message doc:name="Create GetWorkersRequestType">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	requestCriteria: {		
+		excludeInactiveWorkers: true,
+		
+		transactionLogCriteriaData: [{
+			
+			transactionDateRangeData: {
+				updatedFrom: flowVars.lastQueryDate,
+				updatedThrough: now as :datetime				
+			} ,
+			transactionTypeReferences: {
+				transactionTypeReference: [{
+					ID: [{
+						type: "Business_Process_Type",
+						value: "Hire Employee"
+					}  ]
+				} ]
+			} 
+		} ]
+	} ,
+	
+	responseGroup: {		
+		includePersonalInformation: true,		
+		includeRoles: true,		
+		includeOrganizations: true,
+		includeEmploymentInformation: true,
+		includeReference: true
+	} 
+} as :object {
+	class : "com.workday.hr.GetWorkersRequestType"
+}]]></dw:set-payload>
+                </dw:transform-message>
+
+				<wd-hr:get-workers config-ref="WorkdayHumanResource" doc:name="Get hire employees from Workday Human Resource" ></wd-hr:get-workers>
+
+
+
+
+
 			</processor-chain>
-		</poll>		
+		</poll>
+		<set-variable variableName="updatedThrough" value="#[payload.requestCriteria.transactionLogCriteriaData[0].transactionDateRangeData.updatedThrough]" doc:name="Variable"/>
+        <dw:transform-message doc:name="Transform Workday employees to map of values">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload.responseData.worker map { 	
+	FirstName: $.workerData.personalData.nameData.legalNameData.nameDetailData.firstName,
+	LastName: $.workerData.personalData.nameData.legalNameData.nameDetailData.lastName,	
+	Alias: $.workerData.personalData.nameData.legalNameData.nameDetailData.firstName[0..2]	  
+	 ++ $.workerData.personalData.nameData.legalNameData.nameDetailData.lastName[0..2],
+	Username: $.workerData.personalData.nameData.legalNameData.nameDetailData.firstName[0..2]	  
+	 ++ $.workerData.personalData.nameData.legalNameData.nameDetailData.lastName[0..2] ++ "@sf.com", 
+	Email: $.workerData.personalData.contactData.emailAddressData[0].emailAddress,
+	CommunityNickname: $.workerData.personalData.contactData.emailAddressData[0].emailAddress,	
+	LanguageLocaleKey: p('user.languageLocaleKey'),
+	LocaleSidKey: p('user.localeSidKey'),
+	TimeZoneSidKey: p('user.timeZoneSidKey'),
+	EmailEncodingKey: p('user.emailEncodingKey'),
+	ProfileID: p('sfdc.user.profile.id')
+} unless (payload.responseData is :null) otherwise []]]></dw:set-payload>
+        </dw:transform-message>		
         <expression-filter expression="#[payload.size() &gt; 0]" doc:name="Filter empty result set"/>
 
         <flow-ref name="mainFlow" doc:description="mainFlow"  doc:name="Call mainFlow"/>
