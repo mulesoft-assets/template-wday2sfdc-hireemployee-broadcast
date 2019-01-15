@@ -52,7 +52,7 @@ payload ++ {
 }]]]></salesforce:parameters>
                                     </salesforce:query-single>
                                     <choice doc:name="Choice" doc:id="1ea4f8ec-a55d-4e5b-af2e-4f5f052a5b62">
-                                        <when expression="#[sizeOf(vars.userPermissionSet) == 0]">
+                                        <when expression="#[isEmpty(vars.userPermissionSet)]">
                                             <ee:transform doc:name="Transform input arguments to values to setup PermissionSet of the upserted user"
                                                 doc:id="cdee4b7b-517e-42b0-a72f-26668bc4241d">
                                                 <ee:message>
