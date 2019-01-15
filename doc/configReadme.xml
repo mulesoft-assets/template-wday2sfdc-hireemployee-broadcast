@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<configuration>
+	<placeholders>
+		<placeholder id="template_name">Workday to Salesforce Hire Employee Broadcast</placeholder>
+	</placeholders>
+	<sections>
+		<section id="use_case">
+			<![CDATA[
+This template serves as a foundation for setting an online sync of Employee Hires from Workday to Salesforce Users.
+
+Every time there is a new Employee Hire or a change in an already existing one, the integration will poll for them in the Workday source instance and it will be responsible for creating/updating the User in Salesforce with the specified PermissionSet.
+
+Requirements have been set not only to be used as examples, but also to establish a starting point to adapt your integration to your requirements.
+
+As implemented, this template leverages the batch module. The batch job is divided in *Process* and *On Complete* stages.
+
+The template retrieves all Employee Hires that have changed since last poll and if there are any, triggers the Batch process. During the *Process* stage, in the first step the Employees are matched by email with the existing Users in Salesforce. In the second step the users are upserted to Salesforce using a Batch Aggregator and updated with the specified PermissionSet.
+
+Finally during the *On Complete* stage the template logs output statistics data into the console.
+]]>
+		</section>
+		<section id="considerations">
+			<![CDATA[
+To make this template run, there are certain preconditions that must be considered. All of them deal with the preparations in both source and destination systems, that must be made in order for all to run smoothly. **Failing to do so could lead to unexpected behavior of the template.**
+
+1. **Users cannot be deleted in Salesforce:** For now, the only thing to do regarding users removal is disabling/deactivating them, but this won't make the username available for a new user.
+2. **Each user needs to be associated to a Profile:** Salesforce's profiles are what define the permissions the user will have for manipulating data and other users. Each Salesforce account has its own profiles.
+3. **Working with sandboxes for the same account**: Although each sandbox should be a completely different environment, Usernames cannot be repeated in different sandboxes, i.e. if you have a user with username *bob.dylan* in *sandbox A*, you will not be able to create another user with username *bob.dylan* in *sandbox B*.
+4. **Workday email uniqueness**: The email can be repeated for two or more accounts (or missing).
+]]>
+		</section>
+		<section id="application_configuration">
+			<![CDATA[
++ page.size `200`
+
+**Scheduler Configuration**
++ scheduler.frequency `60000`
++ scheduler.start.delay `1000`
++ watermark.default.expression `2016-12-13T03:00:59Z`
+
+**Workday Connector Configuration**
++ wday.username `admin@workday`
++ wday.password `secret`
++ wday.tenant `tenant`
++ wday.host `impl-cc.workday.com`
+
+**Salesforce Connector Configuration**
++ sfdc.username `user@company.com`
++ sfdc.password `secret`
++ sfdc.securityToken `1234fdkfdkso20kw2sd`
+
++ user.localeSidKey `en_US`
++ user.languageLocaleKey `en_US`
++ user.timeZoneSidKey `America/New_York`
++ user.emailEncodingKey `ISO-8859-1`
+
++ sfdc.user.profile.id `10000000002D4JWAA0`
++ sfdc.user.permission.id `10000000002D5JWAA0`
+]]>
+		</section>
+		<section id="api_calls">
+			<![CDATA[
+Salesforce imposes limits on the number of API calls that can be made. Therefore calculating this amount may be an important factor to consider. The template calls to the API can be calculated using the formula:
+
+***1 + X + X / ${page.size}***
+
+***X*** is the number of Users to be synchronized on each run.
+
+Divide by ***${page.size}*** because by default, Users are gathered in groups of ${page.size} for each Upsert API Call in the aggregation step. Also consider that these calls are executed repeatedly every polling cycle.	
+
+For instance if 10 records are fetched from origin instance, then 12 API calls will be made (1 + 10 + 1).
+]]>
+		</section>
+		<section id="default_business_logic_xml">
+		<![CDATA[
+Functional aspect of the template is implemented in this XML, directed by a batch job that will be responsible for creations/updates. The several message processors constitute four high level actions that fully implement the logic of this template:
+
+1. Job execution is invoked from schedulerFlow (endpoints.xml) every time there is a new query executed asking for created/updated Workers.
+2. During the *Process* stage, each Workers will be filtered depending on, if it has an existing matching User in the Salesforce. The match is done according to the email addresses.
+3. The last step of the *Process* stage will group the Users and create/update them in Salesforce and upsert PermissionSet if it is not exist.
+4. Finally during the *On Complete* stage the template logs output statistics data into the console.
+]]>
+		</section>
+	</sections>
+</configuration>
