@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:workday="http://www.mulesoft.org/schema/mule/workday" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+	xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd 
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/workday http://www.mulesoft.org/schema/mule/workday/current/mule-workday.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<munit:config name="test-suite.xml" />
+
+	<configuration-properties doc:name="Configuration properties"
+		doc:id="b3c6babf-1918-4e0b-8d57-823e68fc8415" file="mule.test.properties" />
+	<configuration-properties doc:name="Configuration properties"
+		doc:id="bd3982c5-923c-4ba4-bb0d-922732843e86" file="common.properties" />
+	<munit:before-test name="test-suiteBefore_Test"
+		description="Before tests actions" doc:id="8e7720f6-0959-4336-b15b-a403cb0f05cc">
+		<set-variable value="#[uuid()[0 to 7]]" doc:name="Set random firstName"
+			doc:id="27d3452e-7479-4f83-821f-8e68e28dcf6b" variableName="firstName" />
+		<ee:transform doc:name="Prepare query for Wday"
+			doc:id="8e061d8d-4df9-4c44-b6ad-45b5e9af6d8c">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+ns ns0 urn:com.workday/bsvc
+---
+{
+	ns0#Get_Workers_Request: {
+		ns0#Request_References: {
+			ns0#Worker_Reference : {
+				ns0#ID @(ns0#"type": "Employee_ID" ): p('wday.employee.id')
+			}
+		},
+		ns0#Request_Criteria: {
+			ns0#Exclude_Inactive_Workers: true
+		},
+		ns0#Response_Group: {
+			ns0#Include_Personal_Information: true
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<workday:human-resources operation="Get_Workers"
+			doc:name="Get Workers from Workday Human Resource" doc:id="89a2bf4b-2821-4fab-a3f0-f9c1a2352947"
+			config-ref="Workday_Config" target="workerInWday"
+			targetValue="#[output application/json --- payload]" />
+		<logger level="INFO" doc:name="Logger"
+			doc:id="066428ed-5819-4cba-b3df-5b64d8b64c05"
+			message="workerInWday=#[output application/json --- vars.workerInWday]" />
+		<ee:transform doc:name="Prepare data for SFDC and remember Email"
+			doc:id="a86e76a1-4711-49cb-8d47-d6b0a8b6c9d0">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="email"><![CDATA[%dw 2.0
+output application/java
+---
+vars.workerInWday.Get_Workers_Response.Response_Data.Worker.Worker_Data.Personal_Data.Contact_Data.Email_Address_Data.Email_Address]]></ee:set-variable>
+				<ee:set-variable variableName="SFDCUserToBroadcast"><![CDATA[%dw 2.0
+output application/java
+---
+if (vars.workerInWday.Get_Workers_Response.Response_Data != null) 
+	(vars.workerInWday.Get_Workers_Response.Response_Data.*Worker map(worker) -> {
+	FirstName: vars.firstName,
+	LastName: worker.Worker_Data.Personal_Data.Name_Data.Legal_Name_Data.Name_Detail_Data.Last_Name,
+	Alias: worker.Worker_Data.Personal_Data.Name_Data.Legal_Name_Data.Name_Detail_Data.First_Name[0 to 2] ++ worker.Worker_Data.Personal_Data.Name_Data.Legal_Name_Data.Name_Detail_Data.Last_Name[0 to 2],
+	Username: worker.Worker_Data.Personal_Data.Name_Data.Legal_Name_Data.Name_Detail_Data.First_Name[0 to 2] ++ worker.Worker_Data.Personal_Data.Name_Data.Legal_Name_Data.Name_Detail_Data.Last_Name[0 to 2] ++ "@sf.com",
+	Email: worker.Worker_Data.Personal_Data.Contact_Data.Email_Address_Data.Email_Address,
+	CommunityNickname: worker.Worker_Data.Personal_Data.Contact_Data.Email_Address_Data.Email_Address,
+	LanguageLocaleKey: p('user.languageLocaleKey'),
+	LocaleSidKey: p('user.localeSidKey'),
+	TimeZoneSidKey: p('user.timeZoneSidKey'),
+	EmailEncodingKey: p('user.emailEncodingKey'),
+	ProfileID: p('sfdc.user.profile.id')
+}) distinctBy $
+else []]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<salesforce:query-single config-ref="Salesforce_Sfdc_config"
+			doc:name="Query untouched User from Salesforce" doc:id="b380834c-ab76-4df2-a80c-6e528973a0fb"
+			target="userInSFDC" targetValue="#[output application/json --- payload]">
+			<salesforce:salesforce-query>SELECT Id, FirstName FROM User WHERE
+				Email = ':email'
+			</salesforce:salesforce-query>
+			<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	"email" : vars.email
+}]]]></salesforce:parameters>
+		</salesforce:query-single>
+	</munit:before-test>
+	<munit:test name="test-suiteTest" description="MUnit Test"
+		doc:id="108bec2a-07c9-43f2-9acb-248be9f0af97">
+		<munit:execution>
+			<ee:transform doc:name="Set test user to payload"
+				doc:id="fe1c2f29-9a17-4803-9257-f227a37fafb6">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+vars.SFDCUserToBroadcast]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="Call businessLogicFlow" doc:id="4817c28b-1ea0-4e00-a7f3-386b7cebcc35"
+				name="businessLogicFlow" />
+			<scripting:execute engine="groovy"
+				doc:name="Sleep for 30s until the processing is completed" doc:id="79414a38-943b-4b3b-9260-53a00ab5e09a">
+				<scripting:code>sleep(30000)</scripting:code>
+			</scripting:execute>
+			<salesforce:query-single doc:name="Query broadcasted User from Salesforce"
+				doc:id="18664277-7475-42d5-aa6a-834adbf46553" config-ref="Salesforce_Sfdc_config"
+				targetValue="#[output application/json --- payload]" target="broadcastedSFDCUser">
+				<salesforce:salesforce-query>SELECT Id, FirstName FROM User WHERE
+					Email = ':email'
+				</salesforce:salesforce-query>
+				<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	"email" : vars.email
+}]]]></salesforce:parameters>
+			</salesforce:query-single>
+			<salesforce:query-single doc:name="Query if exist PermissionSet for User" doc:id="aa17f980-e610-4e5d-a58e-cf167696aa8e" config-ref="Salesforce_Sfdc_config" target="userPermissionSet" >
+				<salesforce:salesforce-query >Select Id, p.PermissionSet.ProfileId, p.PermissionSetId, p.Assignee.Email,
+                                            p.Assignee.Id From PermissionSetAssignment p where AssigneeId = ':id' and PermissionSetId =
+                                            ':permissionSetId'</salesforce:salesforce-query>
+				<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	"id" : vars.broadcastedSFDCUser.Id,
+	"permissionSetId" : p('sfdc.user.permission.id')
+}]]]></salesforce:parameters>
+			</salesforce:query-single>
+			<logger level="INFO" doc:name="Logger" doc:id="5e173a81-6bdf-43a9-9ffd-e1bc82ed7023" message="vars.userPermissionSet=#[output application/json --- vars.userPermissionSet]"/>
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that doc:name="Assert that user's first name has changed"
+				doc:id="c778307a-4ed9-42d6-a679-9961ffedf8c4" expression="#[vars.broadcastedSFDCUser.FirstName]"
+				is="#[MunitTools::equalTo(vars.firstName)]" message="First name should be #[vars.firstName]" />
+			<munit-tools:assert-that doc:name="Assert that PermissionSet is not empty" doc:id="441e9503-f767-4103-b4a2-1bbe5680a301" expression="#[isEmpty(vars.userPermissionSet)]" is="#[MunitTools::equalTo(false)]" message="PermissionSet is empty" />
+		</munit:validation>
+	</munit:test>
+	<munit:after-test name="test-suiteAfter_Test"
+		description="After tests actions" doc:id="31224463-0410-4611-b33b-60af8c9f4e8f">
+		<salesforce:update type="User" doc:name="Revert user in SFDC"
+			doc:id="3bfada39-d556-4484-9bb6-bed48e1b3670" config-ref="Salesforce_Sfdc_config">
+			<salesforce:records><![CDATA[#[[vars.userInSFDC]]]]></salesforce:records>
+		</salesforce:update>
+	</munit:after-test>
+</mule>
