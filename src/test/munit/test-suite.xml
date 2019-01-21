@@ -52,9 +52,6 @@ ns ns0 urn:com.workday/bsvc
 			doc:name="Get Workers from Workday Human Resource" doc:id="89a2bf4b-2821-4fab-a3f0-f9c1a2352947"
 			config-ref="Workday_Config" target="workerInWday"
 			targetValue="#[output application/json --- payload]" />
-		<logger level="INFO" doc:name="Logger"
-			doc:id="066428ed-5819-4cba-b3df-5b64d8b64c05"
-			message="workerInWday=#[output application/json --- vars.workerInWday]" />
 		<ee:transform doc:name="Prepare data for SFDC and remember Email"
 			doc:id="a86e76a1-4711-49cb-8d47-d6b0a8b6c9d0">
 			<ee:message>
@@ -127,24 +124,11 @@ vars.SFDCUserToBroadcast]]></ee:set-payload>
 	"email" : vars.email
 }]]]></salesforce:parameters>
 			</salesforce:query-single>
-			<salesforce:query-single doc:name="Query if exist PermissionSet for User" doc:id="aa17f980-e610-4e5d-a58e-cf167696aa8e" config-ref="Salesforce_Sfdc_config" target="userPermissionSet" >
-				<salesforce:salesforce-query >Select Id, p.PermissionSet.ProfileId, p.PermissionSetId, p.Assignee.Email,
-                                            p.Assignee.Id From PermissionSetAssignment p where AssigneeId = ':id' and PermissionSetId =
-                                            ':permissionSetId'</salesforce:salesforce-query>
-				<salesforce:parameters ><![CDATA[#[output application/java
----
-{
-	"id" : vars.broadcastedSFDCUser.Id,
-	"permissionSetId" : p('sfdc.user.permission.id')
-}]]]></salesforce:parameters>
-			</salesforce:query-single>
-			<logger level="INFO" doc:name="Logger" doc:id="5e173a81-6bdf-43a9-9ffd-e1bc82ed7023" message="vars.userPermissionSet=#[output application/json --- vars.userPermissionSet]"/>
 		</munit:execution>
 		<munit:validation>
 			<munit-tools:assert-that doc:name="Assert that user's first name has changed"
 				doc:id="c778307a-4ed9-42d6-a679-9961ffedf8c4" expression="#[vars.broadcastedSFDCUser.FirstName]"
 				is="#[MunitTools::equalTo(vars.firstName)]" message="First name should be #[vars.firstName]" />
-			<munit-tools:assert-that doc:name="Assert that PermissionSet is not empty" doc:id="441e9503-f767-4103-b4a2-1bbe5680a301" expression="#[isEmpty(vars.userPermissionSet)]" is="#[MunitTools::equalTo(false)]" message="PermissionSet is empty" />
 		</munit:validation>
 	</munit:test>
 	<munit:after-test name="test-suiteAfter_Test"
