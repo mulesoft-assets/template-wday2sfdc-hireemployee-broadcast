@@ -43,6 +43,7 @@ To make this template run, there are certain preconditions that must be consider
 + wday.password `secret`
 + wday.tenant `tenant`
 + wday.host `impl-cc.workday.com`
++ wday.responseTimeout `25000`
 
 **Salesforce Connector Configuration**
 + sfdc.username `user@company.com`
@@ -66,7 +67,7 @@ Salesforce imposes limits on the number of API calls that can be made. Therefore
 
 ***X*** is the number of Users to be synchronized on each run.
 
-Divide by ***${page.size}*** because by default, Users are gathered in groups of ${page.size} for each Upsert API Call in the aggregation step. Also consider that these calls are executed repeatedly every polling cycle.	
+Divide by ***${page.size}*** because by default, Users are gathered in groups of ${page.size} for each Upsert API Call in the aggregation step. Also consider that these calls are executed repeatedly every polling cycle.
 
 For instance if 10 records are fetched from origin instance, then 12 API calls will be made (1 + 10 + 1).
 ]]>

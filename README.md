@@ -1,12 +1,12 @@
 
-# Anypoint Template: Workday to Salesforce Hire Employee Broadcast	
+# Anypoint Template: Workday to Salesforce Hire Employee Broadcast
 
 <!-- Header (start) -->
 
 <!-- Header (end) -->
 
 # License Agreement
-This template is subject to the conditions of the <a href="https://s3.amazonaws.com/templates-examples/AnypointTemplateLicense.pdf">MuleSoft License Agreement</a>. Review the terms of the license before downloading and using this template. You can use this template for free with the Mule Enterprise Edition, CloudHub, or as a trial in Anypoint Studio. 
+This template is subject to the conditions of the <a href="https://s3.amazonaws.com/templates-examples/AnypointTemplateLicense.pdf">MuleSoft License Agreement</a>. Review the terms of the license before downloading and using this template. You can use this template for free with the Mule Enterprise Edition, CloudHub, or as a trial in Anypoint Studio.
 # Use Case
 <!-- Use Case (start) -->
 This template serves as a foundation for setting an online sync of Employee Hires from Workday to Salesforce Users.
@@ -107,7 +107,7 @@ After you import your template into Anypoint Studio, follow these steps to run i
 <!-- Running on Studio (end) -->
 
 ### Running on Mule Standalone
-Update the properties in one of the property files, for example in mule.prod.properties, and run your app with a corresponding environment variable. In this example, use `mule.env=prod`. 
+Update the properties in one of the property files, for example in mule.prod.properties, and run your app with a corresponding environment variable. In this example, use `mule.env=prod`.
 
 
 ## Running on CloudHub
@@ -138,6 +138,7 @@ To use this template, configure properties such as credentials, configurations, 
 + wday.password `secret`
 + wday.tenant `tenant`
 + wday.host `impl-cc.workday.com`
++ wday.responseTimeout `25000`
 
 **Salesforce Connector Configuration**
 + sfdc.username `user@company.com`
@@ -161,7 +162,7 @@ Salesforce imposes limits on the number of API calls that can be made. Therefore
 
 ***X*** is the number of Users to be synchronized on each run.
 
-Divide by ***${page.size}*** because by default, Users are gathered in groups of ${page.size} for each Upsert API Call in the aggregation step. Also consider that these calls are executed repeatedly every polling cycle.	
+Divide by ***${page.size}*** because by default, Users are gathered in groups of ${page.size} for each Upsert API Call in the aggregation step. Also consider that these calls are executed repeatedly every polling cycle.
 
 For instance if 10 records are fetched from origin instance, then 12 API calls will be made (1 + 10 + 1).
 <!-- API Calls (end) -->

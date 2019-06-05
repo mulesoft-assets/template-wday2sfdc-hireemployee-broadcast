@@ -8,7 +8,7 @@ http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mu
 http://www.mulesoft.org/schema/mule/workday http://www.mulesoft.org/schema/mule/workday/current/mule-workday.xsd">
 
     <global-property name="mule.env" value="dev" doc:name="Global Property" />
-    
+
     <configuration-properties doc:name="Configuration properties" doc:id="7ebacc9e-1a3b-45ee-9a3d-e3db74b548ea" file="common.properties" />
     <configuration-properties doc:name="Configuration properties" doc:id="37b176cb-6c25-418a-a487-e8a090c6bc62" file="mule.${mule.env}.properties" />
 
@@ -20,7 +20,7 @@ http://www.mulesoft.org/schema/mule/workday http://www.mulesoft.org/schema/mule/
 
     <workday:config-version-30-config name="Workday_Config" doc:name="Workday Config version 30" doc:id="0bd1c18c-4087-4aa2-a9d6-9b8af516b1a7">
         <workday:basic-authentication-api-v30-connection username="${wday.username}" password="${wday.password}"
-            tenantName="${wday.tenant}" hostName="${wday.host}" responseTimeout="25000" />
+            tenantName="${wday.tenant}" hostName="${wday.host}" responseTimeout="${wday.responseTimeout}" />
     </workday:config-version-30-config>
 
 </mule>
