@@ -43,7 +43,6 @@ To make this template run, there are certain preconditions that must be consider
 + wday.password `secret`
 + wday.tenant `tenant`
 + wday.host `impl-cc.workday.com`
-+ wday.responseTimeout `25000`
 
 **Salesforce Connector Configuration**
 + sfdc.username `user@company.com`
