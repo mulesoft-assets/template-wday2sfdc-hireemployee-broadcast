@@ -18,9 +18,9 @@ http://www.mulesoft.org/schema/mule/workday http://www.mulesoft.org/schema/mule/
         <salesforce:basic-connection password="${sfdc.password}" securityToken="${sfdc.securityToken}" username="${sfdc.username}" />
     </salesforce:sfdc-config>
 
-    <workday:config-version-30-config name="Workday_Config" doc:name="Workday Config version 30" doc:id="0bd1c18c-4087-4aa2-a9d6-9b8af516b1a7">
-        <workday:basic-authentication-api-v30-connection username="${wday.username}" password="${wday.password}"
-            tenantName="${wday.tenant}" hostName="${wday.host}" responseTimeout="${wday.responseTimeout}" />
-    </workday:config-version-30-config>
+	<workday:config-version-32-config name="Workday_Config" doc:name="Workday Config version 32" doc:id="7b84b2a2-6c83-41e1-b9da-d010587cf29a" >
+		<workday:basic-authentication-api-v32-connection userName="${wday.username}" password="${wday.password}"
+            tenantName="${wday.tenant}" hostName="${wday.host}"/>
+	</workday:config-version-32-config>
 
 </mule>
